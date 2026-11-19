@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react'
+import WalloraWelcome from './WalloraWelcome.jsx'
 import {
   Search, Heart, Download, Home, Compass, Bookmark,
   ArrowDownToLine, X, Sparkles, ChevronRight
@@ -41,6 +42,23 @@ function loadStoredArray(key) {
 }
 
 export default function App() {
+  const [showWelcome, setShowWelcome] = useState(() => {
+    try {
+      return localStorage.getItem('wallora_welcome_completed_v1') !== 'true'
+    } catch {
+      return true
+    }
+  })
+
+  const handleStartExplore = () => {
+    try {
+      localStorage.setItem('wallora_welcome_completed_v1', 'true')
+    } catch (error) {
+      console.error('WALLORA welcome storage error:', error)
+    }
+    setShowWelcome(false)
+  }
+
   const [tab, setTab] = useState('Home')
   const [category, setCategory] = useState('All')
   const [discovery, setDiscovery] = useState('Discover')
@@ -112,6 +130,8 @@ export default function App() {
   visibleWallpapers = visibleWallpapers.filter(w =>
     `${w.title} ${w.category}`.toLowerCase().includes(search.toLowerCase())
   )
+
+  if (showWelcome) return <WalloraWelcome onStartExplore={handleStartExplore} />
 
   return (
     <div className="app-shell">
