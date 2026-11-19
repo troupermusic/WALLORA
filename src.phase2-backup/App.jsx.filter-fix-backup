@@ -1,0 +1,259 @@
+import { useState, useEffect } from 'react'
+import {
+  Search, Heart, Download, Home, Compass, Bookmark,
+  ArrowDownToLine, X, Sparkles, ChevronRight
+} from 'lucide-react'
+import './App.css'
+
+const wallpapers = [
+  { id: 1, title: 'Midnight Peaks', category: 'Nature', tag: 'TRENDING', image: 'https://images.unsplash.com/photo-1464822759023-fed622ff2c3b?auto=format&fit=crop&w=900&q=90', color: '#52657a' },
+  { id: 2, title: 'Neon Nights', category: 'Abstract', tag: 'POPULAR', image: 'https://images.unsplash.com/photo-1519608487953-e999c86e7455?auto=format&fit=crop&w=900&q=90', color: '#172344' },
+  { id: 3, title: 'Silent Ocean', category: 'Nature', tag: 'NEW', image: 'https://images.unsplash.com/photo-1518837695005-2083093ee35b?auto=format&fit=crop&w=900&q=90', color: '#25536a' },
+  { id: 4, title: 'Dark Motion', category: 'AMOLED', tag: '4K', image: 'https://images.unsplash.com/photo-1534796636912-3b95b3ab5986?auto=format&fit=crop&w=900&q=90', color: '#121212' },
+  { id: 5, title: 'Lost in Space', category: 'Space', tag: 'FEATURED', image: 'https://images.unsplash.com/photo-1462331940025-496dfbfc7564?auto=format&fit=crop&w=900&q=90', color: '#1b1b37' },
+  { id: 6, title: 'Golden Horizon', category: 'Nature', tag: 'NEW', image: 'https://images.unsplash.com/photo-1470770841072-f978cf4d019e?auto=format&fit=crop&w=900&q=90', color: '#785f42' },
+  { id: 7, title: 'Concrete Dreams', category: 'Architecture', tag: 'EDITOR PICK', image: 'https://images.unsplash.com/photo-1511818966892-d7d671e672a2?auto=format&fit=crop&w=900&q=90', color: '#777777' },
+  { id: 8, title: 'Red Planet', category: 'Space', tag: '4K', image: 'https://images.unsplash.com/photo-1614728263952-84ea256f9679?auto=format&fit=crop&w=900&q=90', color: '#763d31' },
+]
+
+const categories = ['All', 'AMOLED', 'Nature', 'Abstract', 'Space', 'Architecture']
+
+const collections = [
+  { name: 'Dark & Minimal', ids: [4, 2] },
+  { name: 'Nature Escape', ids: [1, 3, 6] },
+  { name: 'Beyond Earth', ids: [5, 8] },
+  { name: 'Architecture', ids: [7] },
+]
+
+
+const STORAGE_KEYS = {
+  favorites: 'wallora_favorites_v1',
+  downloads: 'wallora_downloads_v1',
+}
+
+function loadStoredArray(key) {
+  try {
+    const value = JSON.parse(localStorage.getItem(key) || '[]')
+    return Array.isArray(value) ? value : []
+  } catch {
+    return []
+  }
+}
+
+export default function App() {
+  const [tab, setTab] = useState('Home')
+  const [category, setCategory] = useState('All')
+  const [discovery, setDiscovery] = useState('Discover')
+  const [collection, setCollection] = useState('All')
+  const [search, setSearch] = useState('')
+  const [favorites, setFavorites] = useState(() => loadStoredArray(STORAGE_KEYS.favorites))
+  const [downloads, setDownloads] = useState(() => loadStoredArray(STORAGE_KEYS.downloads))
+  const [preview, setPreview] = useState(null)
+
+  useEffect(() => {
+    try {
+      localStorage.setItem(STORAGE_KEYS.favorites, JSON.stringify(favorites))
+    } catch (error) {
+      console.error('WALLORA favorites storage error:', error)
+    }
+  }, [favorites])
+
+  useEffect(() => {
+    try {
+      localStorage.setItem(STORAGE_KEYS.downloads, JSON.stringify(downloads))
+    } catch (error) {
+      console.error('WALLORA downloads storage error:', error)
+    }
+  }, [downloads])
+
+  const toggleFavorite = (id) => {
+    setFavorites(prev => prev.includes(id) ? prev.filter(x => x !== id) : [...prev, id])
+  }
+
+  const downloadWallpaper = async (wallpaper) => {
+    try {
+      const response = await fetch(wallpaper.image)
+      const blob = await response.blob()
+      const url = URL.createObjectURL(blob)
+      const a = document.createElement('a')
+      a.href = url
+      a.download = `WALLORA-${wallpaper.title.replaceAll(' ', '-')}.jpg`
+      document.body.appendChild(a)
+      a.click()
+      a.remove()
+      setDownloads(prev => prev.includes(wallpaper.id) ? prev : [...prev, wallpaper.id])
+      setTimeout(() => URL.revokeObjectURL(url), 2000)
+    } catch {
+      window.open(wallpaper.image, '_blank')
+    }
+  }
+
+  let visibleWallpapers = wallpapers
+
+  if (discovery === 'Trending')
+    visibleWallpapers = wallpapers.filter(w =>
+      ['TRENDING', 'POPULAR', 'FEATURED', 'EDITOR PICK'].includes(w.tag)
+    )
+
+  if (discovery === 'Fresh Drops')
+    visibleWallpapers = wallpapers.filter(w => w.tag === 'NEW')
+
+  if (tab === 'Saved') visibleWallpapers = wallpapers.filter(w => favorites.includes(w.id))
+  if (tab === 'Downloads') visibleWallpapers = wallpapers.filter(w => downloads.includes(w.id))
+  if (tab === 'Explore' && category !== 'All') visibleWallpapers = wallpapers.filter(w => w.category === category)
+  if (category !== 'All' && tab === 'Home') visibleWallpapers = wallpapers.filter(w => w.category === category)
+
+  if (collection !== 'All' && (tab === 'Home' || tab === 'Explore')) {
+    const selectedCollection = collections.find(item => item.name === collection)
+    if (selectedCollection)
+      visibleWallpapers = visibleWallpapers.filter(w => selectedCollection.ids.includes(w.id))
+  }
+
+  visibleWallpapers = visibleWallpapers.filter(w =>
+    `${w.title} ${w.category}`.toLowerCase().includes(search.toLowerCase())
+  )
+
+  return (
+    <div className="app-shell">
+      <header className="topbar">
+        <div className="brand"><span className="brand-mark">W</span> WALLORA<span className="brand-dot">.</span></div>
+        <button className="icon-btn top-heart" onClick={() => setTab('Saved')} aria-label="Favorites">
+          <Heart size={21} />
+        </button>
+      </header>
+
+      <main>
+        <section className="hero">
+          <div className="hero-overline"><Sparkles size={13} /> YOUR SCREEN. YOUR STYLE.</div>
+          <h1>Find your<br /><span>wall.</span></h1>
+          <p>Beautiful wallpapers. A different kind of screen.</p>
+        </section>
+
+        <div className="search-box">
+          <Search size={19} />
+          <input value={search} onChange={e => setSearch(e.target.value)} placeholder="Find your next wallpaper..." />
+          {search && <button onClick={() => setSearch('')} className="clear-search"><X size={16}/></button>}
+        </div>
+
+        <div className="discovery-row">
+          {['Discover', 'Trending', 'Fresh Drops'].map(mode => (
+            <button
+              key={mode}
+              className={`discovery-pill ${discovery === mode ? 'selected' : ''}`}
+              onClick={() => {
+                setDiscovery(mode)
+                setTab('Home')
+                setCategory('All')
+              }}
+            >
+              {mode === 'Trending' ? '↗ ' : mode === 'Fresh Drops' ? '✦ ' : ''}{mode}
+            </button>
+          ))}
+        </div>
+
+        <div className="category-row">
+          {categories.map(cat => (
+            <button key={cat} className={`category-pill ${category === cat ? 'selected' : ''}`}
+              onClick={() => { setCategory(cat); if (tab === 'Saved' || tab === 'Downloads') setTab('Explore') }}>
+              {cat}
+            </button>
+          ))}
+        </div>
+
+        <section className="collections-section">
+          <div className="collections-title">COLLECTIONS</div>
+          <div className="collections-row">
+            {['All', ...collections.map(item => item.name)].map(name => (
+              <button key={name}
+                className={`collection-pill ${collection === name ? 'selected' : ''}`}
+                onClick={() => { setCollection(name); setTab('Home'); setCategory('All') }}>
+                {name}
+              </button>
+            ))}
+          </div>
+        </section>
+
+        <section className="section-heading">
+          <div>
+            <span className="section-eyebrow">{tab === 'Saved' ? 'YOUR COLLECTION' : tab === 'Downloads' ? 'OFFLINE COLLECTION' : 'CURATED FOR YOU'}</span>
+            <h2>{tab === 'Saved' ? 'Saved wallpapers' : tab === 'Downloads' ? 'Your downloads' : tab === 'Explore' ? 'Explore' : 'Discover beauty'}</h2>
+          </div>
+          <span className="wallpaper-count">{visibleWallpapers.length} WALLPAPERS</span>
+        </section>
+
+        {visibleWallpapers.length === 0 ? (
+          <div className="empty-state">
+            <div className="empty-icon"><Bookmark size={24}/></div>
+            <h3>Nothing here yet</h3>
+            <p>Explore wallpapers and save your favorites to find them here.</p>
+            <button className="empty-button" onClick={() => {setTab('Explore'); setCategory('All'); setSearch('')}}>Explore wallpapers</button>
+          </div>
+        ) : (
+          <div className="wallpaper-grid">
+            {visibleWallpapers.map((wallpaper, index) => (
+              <article className={`wallpaper-card card-${index % 2}`} key={wallpaper.id}>
+                <button className="wallpaper-image-button" onClick={() => setPreview(wallpaper)}>
+                  <img src={wallpaper.image} alt={wallpaper.title} loading="lazy" />
+                  <span className="wallpaper-tag">{wallpaper.tag}</span>
+                  <span className="wallpaper-open"><ChevronRight size={17}/></span>
+                </button>
+                <div className="card-info">
+                  <div className="card-text">
+                    <h3>{wallpaper.title}</h3>
+                    <span>{wallpaper.category}</span>
+                  </div>
+                  <div className="card-actions">
+                    <button className={`card-action ${favorites.includes(wallpaper.id) ? 'liked' : ''}`} onClick={() => toggleFavorite(wallpaper.id)} aria-label="Favorite">
+                      <Heart size={17} fill={favorites.includes(wallpaper.id) ? 'currentColor' : 'none'}/>
+                    </button>
+                    <button className="card-action" onClick={() => downloadWallpaper(wallpaper)} aria-label="Download">
+                      <Download size={17}/>
+                    </button>
+                  </div>
+                </div>
+              </article>
+            ))}
+          </div>
+        )}
+      </main>
+
+      <nav className="bottom-nav">
+        {[
+          { name: 'Home', icon: Home },
+          { name: 'Explore', icon: Compass },
+          { name: 'Saved', icon: Heart },
+          { name: 'Downloads', icon: ArrowDownToLine },
+        ].map(item => {
+          const Icon = item.icon
+          return (
+            <button key={item.name} className={`nav-item ${tab === item.name ? 'active' : ''}`} onClick={() => {setTab(item.name); if(item.name === 'Home') setCategory('All')}}>
+              <Icon size={20} strokeWidth={tab === item.name ? 2.4 : 1.7}/>
+              <span>{item.name}</span>
+            </button>
+          )
+        })}
+      </nav>
+
+      {preview && (
+        <div className="preview-overlay" onClick={() => setPreview(null)}>
+          <div className="preview-panel" onClick={e => e.stopPropagation()}>
+            <img src={preview.image} alt={preview.title} className="preview-image"/>
+            <button className="preview-close" onClick={() => setPreview(null)}><X size={22}/></button>
+            <div className="preview-bottom">
+              <div className="preview-info">
+                <span>{preview.category.toUpperCase()}</span>
+                <h2>{preview.title}</h2>
+              </div>
+              <div className="preview-buttons">
+                <button className={`preview-fav ${favorites.includes(preview.id) ? 'liked' : ''}`} onClick={() => toggleFavorite(preview.id)}>
+                  <Heart size={20} fill={favorites.includes(preview.id) ? 'currentColor' : 'none'}/>
+                </button>
+                <button className="preview-download" onClick={() => downloadWallpaper(preview)}><Download size={18}/> Download wallpaper</button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+    </div>
+  )
+}
