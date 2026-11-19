@@ -4,7 +4,7 @@ android {
     namespace = "com.kifs.wallora"
     compileSdk = rootProject.ext.compileSdkVersion
     defaultConfig {
-        applicationId "com.kifs.wallora"
+        applicationId "com.kifs.wallora.v2"
         minSdkVersion rootProject.ext.minSdkVersion
         targetSdkVersion rootProject.ext.targetSdkVersion
         versionCode 1

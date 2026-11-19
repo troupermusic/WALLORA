@@ -1,5 +1,5 @@
 {
-  "appId": "com.kifs.wallora",
+  "appId": "com.kifs.wallora.v2",
   "appName": "WALLORA",
   "webDir": "dist",
   "bundledWebRuntime": false
